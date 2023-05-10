@@ -1,53 +1,40 @@
 #!/usr/bin/node
+/**
+ * Script for printing out all Star Wars Characters
+ */
 
 const request = require('request');
+const id = process.argv[2];
+if (!id || isNaN(id)) {
+  process.exit(1);
+}
 
-const movieId = process.argv[2];
-const filmEndPoint = 'https://swapi-api.hbtn.io/api/films/' + movieId;
-let people = [];
-const names = [];
+const url = `https://swapi-api.alx-tools.com/api/films/${id}`;
 
-const requestCharacters = async () => {
-  await new Promise(resolve => request(filmEndPoint, (err, res, body) => {
-    if (err || res.statusCode !== 200) {
-      console.error('Error: ', err, '| StatusCode: ', res.statusCode);
-    } else {
-      const jsonBody = JSON.parse(body);
-      people = jsonBody.characters;
-      resolve();
-    }
-  }));
-};
+request(url, (error, response, body) => {
+  if (error) {
+    console.log(error);
+    return;
+  }
 
-const requestNames = async () => {
-  if (people.length > 0) {
-    for (const p of people) {
-      await new Promise(resolve => request(p, (err, res, body) => {
-        if (err || res.statusCode !== 200) {
-          console.error('Error: ', err, '| StatusCode: ', res.statusCode);
-        } else {
-          const jsonBody = JSON.parse(body);
-          names.push(jsonBody.name);
-          resolve();
+  const responses = [];
+
+  const json = JSON.parse(body);
+  const characters = json.characters;
+
+  characters.forEach((character) => {
+    const url = character;
+    const promise = new Promise((resolve, reject) => {
+      request(url, (error, response, body) => {
+        if (error) {
+          reject(error);
         }
-      }));
-    }
-  } else {
-    console.error('Error: Got no Characters for some reason');
-  }
-};
-
-const getCharNames = async () => {
-  await requestCharacters();
-  await requestNames();
-
-  for (const n of names) {
-    if (n === names[names.length - 1]) {
-      process.stdout.write(n);
-    } else {
-      process.stdout.write(n + '\n');
-    }
-  }
-};
-
-getCharNames();
+        resolve(JSON.parse(body).name);
+      });
+    });
+    responses.push(promise);
+  });
+  Promise.all(responses)
+    .then(names => console.log(names.join('\n')))
+    .catch(errors => console.log(errors));
+});
