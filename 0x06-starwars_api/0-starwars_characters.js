@@ -1,40 +1,34 @@
 #!/usr/bin/node
-/**
- * Script for printing out all Star Wars Characters
- */
+// Star wars api
 
 const request = require('request');
+
 const id = process.argv[2];
-if (!id || isNaN(id)) {
-  process.exit(1);
-}
 
-const url = `https://swapi-api.alx-tools.com/api/films/${id}`;
+const base = 'https://swapi-api.alx-tools.com/api/';
+const fullUrl = `${base}films/${id}`;
 
-request(url, (error, response, body) => {
+request(fullUrl, { json: true }, (error, response, body) => {
   if (error) {
-    console.log(error);
+    console.error(error);
+  } else {
+    const characters = body.characters;
+    printCharacters(characters, 0);
+  }
+});
+
+function printCharacters (characters, index) {
+  if (index >= characters.length) {
     return;
   }
-
-  const responses = [];
-
-  const json = JSON.parse(body);
-  const characters = json.characters;
-
-  characters.forEach((character) => {
-    const url = character;
-    const promise = new Promise((resolve, reject) => {
-      request(url, (error, response, body) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(JSON.parse(body).name);
-      });
-    });
-    responses.push(promise);
+  const chid = characters[index].split('/')[5];
+  const charUrl = `${base}people/${chid}`;
+  request(charUrl, { json: true }, (error, response, body) => {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log(body.name);
+      printCharacters(characters, index + 1);
+    }
   });
-  Promise.all(responses)
-    .then(names => console.log(names.join('\n')))
-    .catch(errors => console.log(errors));
-});
+}
